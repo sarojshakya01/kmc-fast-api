@@ -1,5 +1,4 @@
 fastapi==0.95.2
-mysqlclient==2.1.1
 pydantic==1.10.7
 SQLAlchemy==2.0.15
 uvicorn==0.22.0
