@@ -8,8 +8,8 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True)
-    password = Column(String)
+    email = Column(String(length=30), unique=True, index=True)
+    password = Column(String(length=8))
     is_active = Column(Boolean, default=True)
 
     posts = relationship("Post", back_populates="user")
@@ -19,9 +19,9 @@ class Post(Base):
     __tablename__ = "posts"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True)
-    description = Column(String, index=True)
-    location = Column(String)
+    title = Column(String(length=50), index=True)
+    description = Column(String(length=256), index=True)
+    location = Column(String(length=100))
     user_id = Column(Integer, ForeignKey("users.id"))
 
     user = relationship("User", back_populates="posts")
