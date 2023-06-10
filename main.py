@@ -1,6 +1,8 @@
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
 from sqlalchemy.orm import Session
 
 import crud, models, schemas
@@ -8,8 +10,18 @@ from database import SessionLocal, engine
 
 models.Base.metadata.create_all(bind=engine)
 
+APP_VERSION = "/api/v1/"
+ALLOWED_ORIGINS = ["http://localhost:3001"]
+
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Dependency
 def get_db():
@@ -19,22 +31,24 @@ def get_db():
     finally:
         db.close()
 
-#decorator
-@app.post("/user/", response_model=schemas.User)
+
+# decorator
+@app.post(APP_VERSION + "user/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    print(user)
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     return crud.create_user(db=db, user=user)
 
 
-@app.get("/users/", response_model=List[schemas.User])
+@app.get(APP_VERSION + "users/", response_model=List[schemas.User])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = crud.get_users(db, skip=skip, limit=limit)
     return users
 
 
-@app.get("/user/{user_id}", response_model=schemas.User)
+@app.get(APP_VERSION + "user/{user_id}", response_model=schemas.User)
 def read_user(user_id: int, db: Session = Depends(get_db)):
     db_user = crud.get_user(db, user_id=user_id)
     if db_user is None:
@@ -42,14 +56,28 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
     return db_user
 
 
-@app.post("/users/{user_id}/posts/", response_model=schemas.Post)
+@app.post(APP_VERSION + "users/{user_id}/posts/")
 def create_post_for_user(
     user_id: int, post: schemas.PostCreate, db: Session = Depends(get_db)
 ):
     return crud.create_user_post(db=db, post=post, user_id=user_id)
 
 
-@app.get("/posts/", response_model=List[schemas.Post])
+@app.get(APP_VERSION + "posts/", response_model=List[schemas.Post])
 def read_posts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     posts = crud.get_posts(db, skip=skip, limit=limit)
+    if posts is None:
+        raise HTTPException(status_code=404, detail="Post not found")
     return posts
+
+
+@app.get(APP_VERSION + "suggestions/")
+def get_suggestions(user_id: int, db: Session = Depends(get_db)):
+    db_users = crud.get_users(db, skip=0, limit=100)
+    if db_users is None:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+    data = []
+    for user in db_users:
+        if user.id != user_id:
+            data.append({"username": user.username, "fullname": user.fullname, "title": user.title})
+    return data
