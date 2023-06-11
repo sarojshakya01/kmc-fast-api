@@ -11,6 +11,19 @@ def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
 
 
+def get_user_by_username(db: Session, username: str):
+    return db.query(models.User).filter(models.User.username == username).first()
+
+
+def validate_user(db: Session, username: str, password: str):
+    return (
+        db.query(models.User)
+        .filter(models.User.username == username)
+        .filter(models.User.password == password)
+        .first()
+    )
+
+
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.User).offset(skip).limit(limit).all()
 
@@ -32,6 +45,7 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     return db_user
 
+
 def get_posts(db: Session, skip: int = 0, limit: int = 100):
     return (
         db.query(
@@ -47,7 +61,7 @@ def get_posts(db: Session, skip: int = 0, limit: int = 100):
             models.Post.description,
             models.Post.created_at.label("post_date"),
             models.User.username.label("post_by_username"),
-            models.User.fullname.label("post_by_fullname")
+            models.User.fullname.label("post_by_fullname"),
         )
         .join(models.User)
         .offset(skip)

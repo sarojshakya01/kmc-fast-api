@@ -33,13 +33,24 @@ def get_db():
 
 
 # decorator
-@app.post(APP_VERSION + "user/", response_model=schemas.User)
+@app.post(APP_VERSION + "user/signup", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    print(user)
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+    db_user2 = crud.get_user_by_username(db, username=user.username)
+    if db_user2:
+        raise HTTPException(status_code=400, detail="Username already taken")
     return crud.create_user(db=db, user=user)
+
+
+# login
+@app.post(APP_VERSION + "user/login")
+def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    db_user = crud.validate_user(db, user.username, user.password)
+    if db_user is None:
+        raise HTTPException(status_code=400, detail="Invalid User")
+    return db_user
 
 
 @app.get(APP_VERSION + "users/", response_model=List[schemas.User])
@@ -79,5 +90,11 @@ def get_suggestions(user_id: int, db: Session = Depends(get_db)):
     data = []
     for user in db_users:
         if user.id != user_id:
-            data.append({"username": user.username, "fullname": user.fullname, "title": user.title})
+            data.append(
+                {
+                    "username": user.username,
+                    "fullname": user.fullname,
+                    "title": user.title,
+                }
+            )
     return data
